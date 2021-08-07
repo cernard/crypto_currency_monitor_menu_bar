@@ -41,15 +41,32 @@ export default merge(baseConfig, {
 
   target: 'electron-renderer',
 
-  entry: [
-    'core-js',
-    'regenerator-runtime/runtime',
-    require.resolve('../../src/index.tsx'),
-  ],
+  // entry: [
+  //   'core-js',
+  //   'regenerator-runtime/runtime',
+  //   require.resolve('../../src/index.tsx'),
+  // ],
+
+  // output: {
+  //   publicPath: `http://localhost:${port}/dist/`,
+  //   filename: 'renderer.dev.js',
+  // },
+  entry: {
+    CCXThread: [
+      `webpack-dev-server/client?http://localhost:${port}/`,
+      'webpack/hot/only-dev-server',
+      require.resolve('../../src/components/CCXThread/index.tsx')
+    ],
+    Main: [
+      `webpack-dev-server/client?http://localhost:${port}/`,
+      'webpack/hot/only-dev-server',
+      require.resolve('../../src/index.tsx')
+    ],
+  },
 
   output: {
     publicPath: `http://localhost:${port}/dist/`,
-    filename: 'renderer.dev.js',
+    filename: '[name].renderer.dev.js'
   },
 
   module: {

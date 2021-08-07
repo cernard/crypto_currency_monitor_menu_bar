@@ -5,6 +5,7 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@import 'antd/dist/antd.css';
 
 @font-face {
   font-family: yuanti;
@@ -13,14 +14,15 @@
 
 body {
   position: relative;
-  color: white;
+  color: rgba(0, 0, 0, 0.8);
   height: 100vh;
-  background: linear-gradient(
+  background: rgb(250, 250, 250);
+  /* background: linear-gradient(
     200.96deg,
     #fedc2a -29.09%,
     #dd5789 51.77%,
     #7a2c9e 129.35%
-  );
+  ); */
   font-family: 'yuanti';
 }
 

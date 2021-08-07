@@ -11,9 +11,9 @@
 import 'core-js/stable';
 import 'regenerator-runtime/runtime';
 import path from 'path';
-import { app, BrowserWindow, shell, Tray, ipcMain } from 'electron';
-// import { autoUpdater } from 'electron-updater';
-// import log from 'electron-log';
+import { app, BrowserWindow, shell, nativeImage, ipcMain } from 'electron';
+import { autoUpdater } from 'electron-updater';
+import log from 'electron-log';
 // import MenuBuilder from './menu';
 
 const { menubar } = require('menubar');
@@ -25,110 +25,107 @@ const RESOURCES_PATH = app.isPackaged
 const getAssetPath = (...paths: string[]): string => {
   return path.join(RESOURCES_PATH, ...paths);
 };
-// export default class AppUpdater {
-//   constructor() {
-//     log.transports.file.level = 'info';
-//     autoUpdater.logger = log;
-//     autoUpdater.checkForUpdatesAndNotify();
-//   }
-// }
+export default class AppUpdater {
+  constructor() {
+    log.transports.file.level = 'info';
+    autoUpdater.logger = log;
+    autoUpdater.checkForUpdatesAndNotify();
+  }
+}
 
-// let mainWindow: BrowserWindow | null = null;
+let ccxthread: BrowserWindow | null = null;
 
-// if (process.env.NODE_ENV === 'production') {
-//   const sourceMapSupport = require('source-map-support');
-//   sourceMapSupport.install();
-// }
+if (process.env.NODE_ENV === 'production') {
+  const sourceMapSupport = require('source-map-support');
+  sourceMapSupport.install();
+}
 
-// if (
-//   process.env.NODE_ENV === 'development' ||
-//   process.env.DEBUG_PROD === 'true'
-// ) {
-//   require('electron-debug')();
-// }
+if (
+  process.env.NODE_ENV === 'development' ||
+  process.env.DEBUG_PROD === 'true'
+) {
+  require('electron-debug')();
+}
 
-// const installExtensions = async () => {
-//   const installer = require('electron-devtools-installer');
-//   const forceDownload = !!process.env.UPGRADE_EXTENSIONS;
-//   const extensions = ['REACT_DEVELOPER_TOOLS'];
+const installExtensions = async () => {
+  const installer = require('electron-devtools-installer');
+  const forceDownload = !!process.env.UPGRADE_EXTENSIONS;
+  const extensions = ['REACT_DEVELOPER_TOOLS'];
 
-//   return installer
-//     .default(
-//       extensions.map((name) => installer[name]),
-//       forceDownload
-//     )
-//     .catch(console.log);
-// };
+  return installer
+    .default(
+      extensions.map((name) => installer[name]),
+      forceDownload
+    )
+    .catch(console.log);
+};
 
-// const createWindow = async () => {
-//   if (
-//     process.env.NODE_ENV === 'development' ||
-//     process.env.DEBUG_PROD === 'true'
-//   ) {
-//     await installExtensions();
-//   }
+const createWindow = async () => {
+  if (
+    process.env.NODE_ENV === 'development' ||
+    process.env.DEBUG_PROD === 'true'
+  ) {
+    await installExtensions();
+  }
 
-//   mainWindow = new BrowserWindow({
-//     show: false,
-//     width: 1024,
-//     height: 728,
-//     icon: getAssetPath('icon.png'),
-//     webPreferences: {
-//       nodeIntegration: true,
-//     },
-//   });
+  ccxthread = new BrowserWindow({
+    show: false,
+    width: 1024,
+    height: 728,
+    icon: getAssetPath('icon.png'),
+    webPreferences: {
+      nodeIntegration: true,
+    },
+  });
 
-//   mainWindow.loadURL(`file://${__dirname}/index.html`);
+  ccxthread.loadURL(`file://${__dirname}/components/CCXThread/index.html`);
 
-//   // @TODO: Use 'ready-to-show' event
-//   //        https://github.com/electron/electron/blob/master/docs/api/browser-window.md#using-ready-to-show-event
-//   mainWindow.webContents.on('did-finish-load', () => {
-//     if (!mainWindow) {
-//       throw new Error('"mainWindow" is not defined');
-//     }
-//     if (process.env.START_MINIMIZED) {
-//       mainWindow.minimize();
-//     } else {
-//       mainWindow.show();
-//       mainWindow.focus();
-//     }
-//   });
+  // @TODO: Use 'ready-to-show' event
+  //        https://github.com/electron/electron/blob/master/docs/api/browser-window.md#using-ready-to-show-event
+  ccxthread.webContents.on('did-finish-load', () => {
+    if (!ccxthread) {
+      throw new Error('"ccxthread" is not defined');
+    }
+    if (process.env.START_MINIMIZED) {
+      ccxthread.minimize();
+    } else {
+      ccxthread.show();
+      ccxthread.focus();
+    }
+  });
 
-//   mainWindow.on('closed', () => {
-//     mainWindow = null;
-//   });
+  ccxthread.on('closed', () => {
+    ccxthread = null;
+  });
 
-//   const menuBuilder = new MenuBuilder(mainWindow);
-//   menuBuilder.buildMenu();
+  // Open urls in the user's browser
+  ccxthread.webContents.on('new-window', (event, url) => {
+    event.preventDefault();
+    shell.openExternal(url);
+  });
 
-//   // Open urls in the user's browser
-//   mainWindow.webContents.on('new-window', (event, url) => {
-//     event.preventDefault();
-//     shell.openExternal(url);
-//   });
+  // Remove this if your app does not use auto updates
+  // eslint-disable-next-line
+  new AppUpdater();
+};
 
-//   // Remove this if your app does not use auto updates
-//   // eslint-disable-next-line
-//   new AppUpdater();
-// };
+/**
+ * Add event listeners...
+ */
 
-// /**
-//  * Add event listeners...
-//  */
+app.on('window-all-closed', () => {
+  // Respect the OSX convention of having the application in memory even
+  // after all windows have been closed
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
+});
 
-// app.on('window-all-closed', () => {
-//   // Respect the OSX convention of having the application in memory even
-//   // after all windows have been closed
-//   if (process.platform !== 'darwin') {
-//     app.quit();
-//   }
-// });
-
-// app.on('activate', () => {
-//   // On macOS it's common to re-create a window in the app when the
-//   // dock icon is clicked and there are no other windows open.
-//   if (mainWindow === null) createWindow();
-// });
+app.on('activate', () => {
+  // On macOS it's common to re-create a window in the app when the
+  // dock icon is clicked and there are no other windows open.
+  if (ccxthread === null) createWindow();
+});
 
 global.mb = null;
 
@@ -143,7 +140,11 @@ const createTray = () => {
         enableRemoteModule: true,
       },
       alwaysOnTop: true,
+      width: 370,
     },
+    icon: nativeImage
+      .createFromPath(getAssetPath('icon.png'))
+      .resize({ width: 24, height: 24 }),
   });
   global.mb.on('after-create-window', () => {
     global.mb.window.openDevTools();
@@ -154,7 +155,7 @@ const createTray = () => {
 app
   .whenReady()
   .then(() => {
-    // createWindow();
+    createWindow();
     createTray();
     return null;
   })

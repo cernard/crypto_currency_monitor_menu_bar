@@ -35,6 +35,7 @@
     "files": [
       "dist/",
       "node_modules/",
+      "components/CCXThread/index.html",
       "index.html",
       "main.prod.js",
       "main.prod.js.map",
@@ -42,9 +43,12 @@
     ],
     "afterSign": ".erb/scripts/Notarize.js",
     "mac": {
-      "target": [
-        "dmg"
-      ],
+      "target": {
+        "target": "dmg",
+        "arch": [
+          "arm64"
+        ]
+      },
       "type": "distribution",
       "hardenedRuntime": true,
       "entitlements": "assets/entitlements.mac.plist",
@@ -254,8 +258,11 @@
   },
   "dependencies": {
     "ahooks": "^2.10.9",
-    "antd": "^4.16.9",
+    "antd": "^4.16.10",
+    "array-move": "^3.0.1",
     "ccxt": "^1.54.19",
+    "echarts": "^5.1.2",
+    "echarts-for-react": "^3.0.1",
     "electron-debug": "^3.1.0",
     "electron-log": "^4.2.4",
     "electron-store": "^8.0.0",
@@ -268,7 +275,9 @@
     "react-dom": "^17.0.1",
     "react-konva": "^17.0.2-5",
     "react-router-dom": "^5.2.0",
+    "react-sortable-hoc": "^2.0.0",
     "regenerator-runtime": "^0.13.5",
+    "short-number": "^1.0.7",
     "source-map-support": "^0.5.19",
     "use-image": "^1.0.8"
   },

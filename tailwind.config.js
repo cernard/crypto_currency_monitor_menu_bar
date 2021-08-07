@@ -12,6 +12,10 @@ module.exports = {
   variants: {
     extend: {
       dropShadow: ['hover', 'focus'],
+      margin: ['first', 'last'],
+      boxShadow: ['active'],
+      backgroundImage: ['active'],
+      gradientColorStops: ['active'],
     },
   },
   plugins: [],
