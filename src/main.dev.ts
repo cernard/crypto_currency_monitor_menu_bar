@@ -8,13 +8,15 @@
  * When running `yarn build` or `yarn build:main`, this file is compiled to
  * `./src/main.prod.js` using webpack. This gives us some performance wins.
  */
+
 import 'core-js/stable';
 import 'regenerator-runtime/runtime';
 import path from 'path';
 import { app, BrowserWindow, shell, nativeImage, ipcMain } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
-// import MenuBuilder from './menu';
+import MonitorCurrencyDTO from './entities/MonitorCurrencyDTO';
+import { DataType } from './components/MonitorSetting/Editable';
 
 const { menubar } = require('menubar');
 
@@ -161,8 +163,14 @@ app
   })
   .catch(console.log);
 
-ipcMain.on('setMenubarOption', (options) => {
-  if (global.mb) {
-    global.mb.setOption(options);
-  }
+// 监听来自配置的消息，并将配置消息转发给CCXThread窗口
+ipcMain.on('notifyFromConfig', (e, param: DataType[]) => {
+  log.info('notifyFromConfig: ', param);
+  ccxthread?.webContents.send('notifyFromMain', param);
+});
+
+// 监听来自CCXThread的价格信息，并将价格信息转发给监控器
+ipcMain.on('notifyFromCCXThread', (e, param: MonitorCurrencyDTO[]) => {
+  log.info('notifyFromCCXThread: ', param);
+  global.mb.window.webContents.send('notifyFromMain', param);
 });

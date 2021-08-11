@@ -1,5 +1,5 @@
 import React, { useContext, useState, useEffect, useRef } from 'react';
-import { Table, Input, Select, Popconfirm, Form, message, Spin } from 'antd';
+import { Table, Input, Select, Popconfirm, Form } from 'antd';
 import { MenuOutlined } from '@ant-design/icons';
 import { FormInstance } from 'antd/lib/form';
 import {
@@ -8,6 +8,7 @@ import {
   SortableHandle,
 } from 'react-sortable-hoc';
 import arrayMove from 'array-move';
+import { ipcRenderer } from 'electron';
 
 const EditableContext = React.createContext<FormInstance<any> | null>(null);
 const MarketsContext = React.createContext<BaseAndQuotes[]>([]);
@@ -163,6 +164,7 @@ type ColumnTypes = Exclude<EditableTableProps['columns'], undefined>;
 const DragHandle = SortableHandle(() => (
   <MenuOutlined style={{ cursor: 'grab', color: '#999' }} />
 ));
+// const SortableItem = SortableElement((props) => <EditableRow {...props} />);
 const SortableItem = SortableElement((props) => <EditableRow {...props} />);
 const TBodySortableContainer = SortableContainer((props) => (
   <tbody {...props} />
@@ -204,7 +206,7 @@ class EditableTable extends React.Component<
       {
         title: 'Sort',
         dataIndex: 'sort',
-        width: 70,
+        width: 50,
         className: 'drag-visible',
         render: () => <DragHandle />,
       },
@@ -212,20 +214,22 @@ class EditableTable extends React.Component<
         title: 'Base',
         dataIndex: 'base',
         editable: true,
+        width: 50,
       },
       {
         title: 'Quote',
         dataIndex: 'quote',
         editable: true,
+        width: 50,
       },
       {
         title: 'Exchange',
         dataIndex: 'exchange',
         editable: true,
-        width: 150,
+        width: 70,
       },
       {
-        title: 'operation',
+        title: 'Operation',
         dataIndex: 'operation',
         render: (_, record: { key: React.Key }) =>
           this.state.dataSource.length >= 1 ? (
@@ -236,6 +240,7 @@ class EditableTable extends React.Component<
               <a>Delete</a>
             </Popconfirm>
           ) : null,
+        width: 70,
       },
     ];
 
@@ -276,6 +281,7 @@ class EditableTable extends React.Component<
       dataSource: [...dataSource, newData],
       count: count + 1,
     });
+    ipcRenderer.send('notifyFromConfig', [...dataSource, newData]);
   };
 
   handleSave = (row: DataType) => {
@@ -287,6 +293,7 @@ class EditableTable extends React.Component<
       ...row,
     });
     this.setState({ dataSource: newData });
+    ipcRenderer.send('notifyFromConfig', newData);
     console.log(newData);
   };
 
@@ -302,6 +309,7 @@ class EditableTable extends React.Component<
         return d;
       });
       this.setState({ dataSource: newData });
+      ipcRenderer.send('notifyFromConfig', newData);
       console.log(newData);
     }
   };
@@ -369,6 +377,7 @@ class EditableTable extends React.Component<
             dataSource={dataSource}
             columns={columns as ColumnTypes}
             loading={isMarketsLoading}
+            size="small"
           />
           <div
             className="absolute right-10 bottom-10 rounded-full h-16 w-16 flex justify-center items-center text-white cursor-pointer shadow active:shadow-xl transition-all bg-gradient-to-tr from-green-400 to-blue-500 hover:from-red-200 hover:to-yellow-500 "

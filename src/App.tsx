@@ -14,7 +14,7 @@ import MonitorList from './components/MonitorList';
 import MonitorSetting from './components/MonitorSetting';
 import monitorSVG from '../assets/icons/monitor.svg';
 import exchangeSVG from '../assets/icons/exchange.svg';
-import SimpleCurrencyEntity from './entities/Currency';
+import MonitorCurrencyDTO from './entities/MonitorCurrencyDTO';
 
 const fs = require('fs');
 const shortNumber = require('short-number');
@@ -30,7 +30,7 @@ const getAssetPath = (...paths: string[]): string => {
 
 export default function App() {
   const [simpleCurrencyInfo, setSimpleCurrencyInfo] = useState<
-    SimpleCurrencyEntity
+    MonitorCurrencyDTO
   >({
     base: 'None',
     quote: 'None',
