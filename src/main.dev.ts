@@ -17,6 +17,9 @@ import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import MonitorCurrencyDTO from './entities/MonitorCurrencyDTO';
 import { DataType } from './components/MonitorSetting/Editable';
+import ElectronStore from 'electron-store';
+
+const sotre = new ElectronStore();
 
 const { menubar } = require('menubar');
 

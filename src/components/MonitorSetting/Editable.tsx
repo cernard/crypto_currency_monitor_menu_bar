@@ -9,6 +9,22 @@ import {
 } from 'react-sortable-hoc';
 import arrayMove from 'array-move';
 import { ipcRenderer } from 'electron';
+import ElectronStore from 'electron-store';
+import { Dictionary, Exchange as CCXTExchange, Market } from 'ccxt';
+import HttpsProxyAgent from 'https-proxy-agent';
+import { isArray, isEmpty } from 'lodash';
+import { useControllableValue, useMount, useRequest } from 'ahooks';
+import StoreKeys from '../../entities/StoreKeys';
+
+const ccxt = require('ccxt');
+
+const store = new ElectronStore();
+
+let agent: any;
+if (process.env.NODE_ENV !== 'production') {
+  // TODO 发布时删除此代码
+  agent = HttpsProxyAgent('http://127.0.0.1:7890');
+}
 
 const EditableContext = React.createContext<FormInstance<any> | null>(null);
 const MarketsContext = React.createContext<BaseAndQuotes[]>([]);
@@ -33,6 +49,19 @@ interface EditableCellProps {
 
 const { Option } = Select;
 
+function getMarkets(exchangeId: string) {
+  console.log('getMarkets: ', exchangeId);
+
+  let exchange: CCXTExchange;
+  if (process.env.NODE_ENV !== 'production') {
+    exchange = new ccxt[exchangeId]({ agent });
+  } else {
+    exchange = new ccxt[exchangeId]();
+  }
+
+  return exchange.loadMarkets();
+}
+
 const EditableCell: React.FC<EditableCellProps> = ({
   editable,
   children,
@@ -45,7 +74,7 @@ const EditableCell: React.FC<EditableCellProps> = ({
   const inputRef = useRef<Input>(null);
   const form = useContext(EditableContext)!;
 
-  const markets = useContext(MarketsContext);
+  // console.log(dataIndex, baseOptions, quoteOptions);
 
   useEffect(() => {
     if (editing) {
@@ -84,7 +113,14 @@ const EditableCell: React.FC<EditableCellProps> = ({
               },
             ]}
           >
-            <Input ref={inputRef} onPressEnter={save} onBlur={save} />
+            <Select ref={inputRef} onBlur={save} showSearch>
+              {/* {baseOptions.map((e) => (
+                <Option value={e} key={e}>
+                  {e}
+                </Option>
+              ))} */}
+            </Select>
+            {/* <Input ref={inputRef} onPressEnter={save} onBlur={save} /> */}
           </Form.Item>
         );
         break;
@@ -100,7 +136,14 @@ const EditableCell: React.FC<EditableCellProps> = ({
               },
             ]}
           >
-            <Input ref={inputRef} onPressEnter={save} onBlur={save} />
+            <Select ref={inputRef} onBlur={save} showSearch>
+              {/* {quoteOptions.map((e) => (
+                <Option value={e} key={e}>
+                  {e}
+                </Option>
+              ))} */}
+            </Select>
+            {/* <Input ref={inputRef} onPressEnter={save} onBlur={save} /> */}
           </Form.Item>
         );
         break;
@@ -115,15 +158,14 @@ const EditableCell: React.FC<EditableCellProps> = ({
                 message: `Exchange is required.`,
               },
             ]}
-            initialValue="auto"
+            initialValue="binance"
           >
             <Select ref={inputRef} onBlur={save} showSearch>
-              <Option value="auto" key="auto">
-                auto
-              </Option>
-              <Option value="a" key="a">
-                a
-              </Option>
+              {ccxt.exchanges.map((e) => (
+                <Option value={e} key={e}>
+                  {e}
+                </Option>
+              ))}
             </Select>
           </Form.Item>
         );
@@ -146,7 +188,7 @@ const EditableCell: React.FC<EditableCellProps> = ({
 type EditableTableProps = Parameters<typeof Table>[0];
 
 export interface DataType {
-  key: React.Key;
+  key: number;
   base: string;
   quote: string;
   exchange: string;
@@ -170,10 +212,51 @@ const TBodySortableContainer = SortableContainer((props) => (
   <tbody {...props} />
 ));
 
+// TODO 当表格行渲染完毕，更新单元格组件数据
 const EditableRow: React.FC<EditableRowProps> = ({ index, ...props }) => {
   const [form] = Form.useForm();
+
+  const { loading, run } = useRequest(getMarkets, {
+    manual: true,
+    throwOnError: true,
+    onSuccess: (result: Dictionary<Market>, params) => {
+      Object.values(result).forEach((value) => {
+        console.log(value);
+      });
+    },
+    onError: (error, params) => {
+      console.error(error.message, params);
+    },
+  });
+
+  const [baseOptions, setBaseOptions] = useState<string[]>(['a', 'b']);
+  const [quoteOptions, setQuoteOptions] = useState<string[]>([
+    'c',
+    'd',
+    'e',
+    'f',
+  ]);
+  const [exchangeId, setExchangeId] = useState('');
+
+  useMount(() => {
+    if (props && props.children) {
+      const filted = props.children.filter(c => c.key === 'exchange');
+      if (filted.length !== 0) {
+        // 得到表行的默认交易所id
+        const eid = filted[0].props.record.exchange;
+        setExchangeId(eid);
+      }
+    }
+  });
+
+  useEffect(() => {
+    if (exchangeId) {
+      run(exchangeId);
+    }
+  }, [exchangeId]);
+
   return (
-    <Form form={form} component={false}>
+    <Form form={form} component={false} onFieldsChange={(a, b) => {console.log(a, b)}}>
       <EditableContext.Provider value={form}>
         <tr {...props} />
       </EditableContext.Provider>
@@ -244,28 +327,33 @@ class EditableTable extends React.Component<
       },
     ];
 
+    const data: unknown = store.get(StoreKeys.MonitorListConifg);
+    let savedData: DataType[] = [];
+    if (data && typeof data === 'object') {
+      savedData = data;
+    }
+
     // WARNING: state.count必须比dataSource中最大的count要大
+    let count = 0;
+    if (savedData.length !== 0) {
+      count =
+        savedData.sort((a: DataType, b: DataType) => b.key - a.key)[0].key + 1;
+    }
     this.state = {
-      dataSource: [
-        {
-          key: 0,
-          base: 'Edward King 0',
-          quote: '32',
-          exchange: 'auto',
-          index: 0,
-        },
-      ],
-      count: 1,
+      dataSource: savedData,
+      count,
       markets: [],
       isMarketsLoading: false,
     };
   }
 
   handleDelete = (key: React.Key) => {
-    const dataSource = [...this.state.dataSource];
+    let { dataSource } = this.state;
+    dataSource = dataSource.filter((item) => item.key !== key);
     this.setState({
-      dataSource: dataSource.filter((item) => item.key !== key),
+      dataSource,
     });
+    store.set(StoreKeys.MonitorListConifg, dataSource);
   };
 
   handleAdd = () => {
@@ -274,7 +362,7 @@ class EditableTable extends React.Component<
       key: count,
       base: 'BTC',
       quote: 'USDT',
-      exchange: 'auto',
+      exchange: 'binance',
       index: count,
     };
     this.setState({
@@ -282,6 +370,7 @@ class EditableTable extends React.Component<
       count: count + 1,
     });
     ipcRenderer.send('notifyFromConfig', [...dataSource, newData]);
+    store.set(StoreKeys.MonitorListConifg, [...dataSource, newData]);
   };
 
   handleSave = (row: DataType) => {
@@ -294,7 +383,7 @@ class EditableTable extends React.Component<
     });
     this.setState({ dataSource: newData });
     ipcRenderer.send('notifyFromConfig', newData);
-    console.log(newData);
+    store.set(StoreKeys.MonitorListConifg, newData);
   };
 
   onSortEnd = ({ oldIndex, newIndex }) => {
@@ -305,12 +394,14 @@ class EditableTable extends React.Component<
       );
       let _count = 0;
       newData = newData.map((d) => {
-        d.index = _count++;
+        d.key = _count;
+        d.index = _count;
+        _count += 1;
         return d;
       });
       this.setState({ dataSource: newData });
       ipcRenderer.send('notifyFromConfig', newData);
-      console.log(newData);
+      store.set(StoreKeys.MonitorListConifg, newData);
     }
   };
 
